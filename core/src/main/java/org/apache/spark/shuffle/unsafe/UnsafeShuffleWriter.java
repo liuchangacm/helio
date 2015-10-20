@@ -17,26 +17,24 @@
 
 package org.apache.spark.shuffle.unsafe;
 
-import javax.annotation.Nullable;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.util.Iterator;
 
-import scala.Option;
-import scala.Product2;
-import scala.collection.JavaConverters;
-import scala.collection.immutable.Map;
-import scala.reflect.ClassTag;
-import scala.reflect.ClassTag$;
+import javax.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.apache.spark.*;
+import org.apache.spark.Accumulator;
+import org.apache.spark.InternalAccumulator;
+import org.apache.spark.Partitioner;
+import org.apache.spark.ShuffleDependency;
+import org.apache.spark.SparkConf;
+import org.apache.spark.TaskContext;
 import org.apache.spark.annotation.Private;
 import org.apache.spark.executor.ShuffleWriteMetrics;
 import org.apache.spark.io.CompressionCodec;
@@ -55,6 +53,21 @@ import org.apache.spark.storage.BlockManager;
 import org.apache.spark.storage.TimeTrackingOutputStream;
 import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.memory.TaskMemoryManager;
+import org.apache.spark.util.Helper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import scala.Option;
+import scala.Product2;
+import scala.collection.JavaConverters;
+import scala.collection.immutable.Map;
+import scala.reflect.ClassTag;
+import scala.reflect.ClassTag$;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
 
 @Private
 public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
@@ -459,8 +472,8 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       Map<String, Accumulator<Object>> internalAccumulators =
         taskContext.internalMetricsToAccumulators();
       if (internalAccumulators != null) {
-        internalAccumulators.apply(InternalAccumulator.PEAK_EXECUTION_MEMORY())
-          .add(getPeakMemoryUsedBytes());
+    	  String str = InternalAccumulator.PEAK_EXECUTION_MEMORY();
+    	  Helper.add(internalAccumulators, str, getPeakMemoryUsedBytes());
       }
 
       if (stopping) {

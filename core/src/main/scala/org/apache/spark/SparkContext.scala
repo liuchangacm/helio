@@ -258,6 +258,8 @@ class SparkContext(config: SparkConf) extends Logging with ExecutorAllocationCli
   private[spark] def eventLogDir: Option[URI] = _eventLogDir
   private[spark] def eventLogCodec: Option[String] = _eventLogCodec
 
+  var typeChecker = (x:RDD[_]) => true
+  
   // Generate the random name for a temp folder in external block store.
   // Add a timestamp as the suffix here to make it more safe
   val externalBlockStoreFolderName = "spark-" + randomUUID.toString()
@@ -1820,6 +1822,10 @@ class SparkContext(config: SparkConf) extends Logging with ExecutorAllocationCli
       resultHandler: (Int, U) => Unit): Unit = {
     if (stopped.get()) {
       throw new IllegalStateException("SparkContext has been shutdown")
+    }
+    if(!typeChecker(rdd)) {
+      logInfo("RDD cannot type check!")
+      return
     }
     val callSite = getCallSite
     val cleanedFunc = clean(func)
