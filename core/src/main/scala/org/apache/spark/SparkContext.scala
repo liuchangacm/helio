@@ -248,7 +248,7 @@ class SparkContext(config: SparkConf) extends Logging with ExecutorAllocationCli
   private[spark] def eventLogDir: Option[URI] = _eventLogDir
   private[spark] def eventLogCodec: Option[String] = _eventLogCodec
 
-  var typeChecker = (x:RDD[_]) => true
+  var tc:TypeChecker = DefaultTypeChecker
   
   // Generate the random name for a temp folder in external block store.
   // Add a timestamp as the suffix here to make it more safe
@@ -1813,7 +1813,7 @@ class SparkContext(config: SparkConf) extends Logging with ExecutorAllocationCli
     if (stopped.get()) {
       throw new IllegalStateException("SparkContext has been shutdown")
     }
-    if(!typeChecker(rdd)) {
+    if(!tc.check[T, U](rdd, func, resultHandler)) {
       logInfo("RDD cannot type check!")
       return
     }
