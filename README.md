@@ -1,3 +1,10 @@
+# This is a fork from Spark to build Helio
+
+Helio is a trusted hardware-enabled privacy-preserving distributed computing system.
+
+In the following is the original README for Spark.
+
+
 # Apache Spark
 
 Spark is a fast and general cluster computing system for Big Data. It provides
