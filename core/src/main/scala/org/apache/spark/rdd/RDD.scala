@@ -1004,6 +1004,28 @@ abstract class RDD[T: ClassTag](
   }
 
   /**
+   * Reduces the elements of this RDD using the specified commutative and
+   * associative binary operator.
+   */
+  def binreduce(command:String): String = withScope {
+    val binReduce = BinReducer.getBinReducer(command)
+    val reducePartition: Iterator[T] => Option[String] = 
+      itr => (binReduce { for (i <- itr) yield(i.toString) }) 
+    var jobResult: Option[String] = None
+    val mergeResult = (index: Int, taskResult: Option[String]) => {
+      if (taskResult.isDefined) {
+        jobResult = jobResult match {
+          case Some(value) => binReduce (Array(value, taskResult.get.toString).iterator)
+          case None => taskResult
+        }
+      }
+    }
+    sc.runJob(this, reducePartition, mergeResult)
+    // Get the final result out of our Option, or throw an exception if the RDD was empty
+    jobResult.getOrElse(throw new UnsupportedOperationException("empty collection"))
+  }
+  
+  /**
    * Reduces the elements of this RDD in a multi-level tree pattern.
    *
    * @param depth suggested depth of the tree (default: 2)
