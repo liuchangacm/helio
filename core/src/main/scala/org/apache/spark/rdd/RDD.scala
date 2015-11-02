@@ -42,6 +42,7 @@ import org.apache.spark.util.{BoundedPriorityQueue, Utils}
 import org.apache.spark.util.collection.OpenHashMap
 import org.apache.spark.util.random.{BernoulliSampler, PoissonSampler, BernoulliCellSampler,
   SamplingUtils}
+import org.apache.spark.label._
 
 /**
  * A Resilient Distributed Dataset (RDD), the basic abstraction in Spark. Represents an immutable,
@@ -133,6 +134,10 @@ abstract class RDD[T: ClassTag](
   // Methods and fields available on all RDDs
   // =======================================================================
 
+  var helioLocationRestriction: Seq[String] = Nil
+  
+  var label: Label = Label.top
+  
   /** The SparkContext that created this RDD. */
   def sparkContext: SparkContext = sc
 
@@ -247,8 +252,12 @@ abstract class RDD[T: ClassTag](
    * RDD is checkpointed.
    */
   final def preferredLocations(split: Partition): Seq[String] = {
-    checkpointRDD.map(_.getPreferredLocations(split)).getOrElse {
-      getPreferredLocations(split)
+    if(helioLocationRestriction == Nil) {
+      checkpointRDD.map(_.getPreferredLocations(split)).getOrElse {
+      	getPreferredLocations(split)
+      }
+    } else {
+      helioLocationRestriction
     }
   }
 

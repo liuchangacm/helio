@@ -139,6 +139,7 @@ class DAGScheduler(
   private[scheduler] val jobIdToStageIds = new HashMap[Int, HashSet[Int]]
   private[scheduler] val stageIdToStage = new HashMap[Int, Stage]
   private[scheduler] val shuffleToMapStage = new HashMap[Int, ShuffleMapStage]
+  private[scheduler] val resultStages = new HashMap[Int, ResultStage]
   private[scheduler] val jobIdToActiveJob = new HashMap[Int, ActiveJob]
 
   // Stages we need to run whose parents aren't done
@@ -293,6 +294,35 @@ class DAGScheduler(
   }
 
   /**
+   * Get or create a shuffle map stage for the given shuffle dependency's map side.
+   */
+  private def getResultStage(
+      rdd: RDD[_],
+      firstJobId: Int): ResultStage = {
+    resultStages.get(rdd.id) match {
+      case Some(stage) => stage
+      case None =>
+        // Persist the RDD
+        rdd.persist()
+        // We are going to register ancestor shuffle dependencies
+        // TODO for our simple lattice, it is impossible that a result stage have another
+        //      result stage in its dependencies. Should have a cleaner solution if we
+        //      support a richer lattice latter
+        getAncestorShuffleDependencies(rdd).foreach { dep =>
+          shuffleToMapStage(dep.shuffleId) = newOrUsedShuffleStage(dep, firstJobId)
+        }
+        // Then register current shuffleDep
+        val stage = newResultStage(rdd: RDD[_],
+                                    (ctx: TaskContext, it: Iterator[_]) => {it.next()},
+                                    (0 until rdd.partitions.length).toArray,
+                                    firstJobId,
+                                    rdd.creationSite)
+        resultStages(rdd.id) = stage
+        stage
+    }
+  }
+
+  /**
    * Helper function to eliminate some code re-use when creating new stages.
    */
   private def getParentStagesAndId(rdd: RDD[_], firstJobId: Int): (List[Stage], Int) = {
@@ -386,7 +416,10 @@ class DAGScheduler(
             case shufDep: ShuffleDependency[_, _, _] =>
               parents += getShuffleMapStage(shufDep, firstJobId)
             case _ =>
-              waitingForVisit.push(dep.rdd)
+              if(dep.rdd.label == r.label)
+                waitingForVisit.push(dep.rdd)
+              else
+                parents += getResultStage(dep.rdd, firstJobId)
           }
         }
       }

@@ -822,6 +822,13 @@ class SparkContext(config: SparkConf) extends Logging with ExecutorAllocationCli
       minPartitions).map(pair => pair._2.toString)
   }
 
+  def localFile(
+      localHost:String,
+      path: String): RDD[String] = withScope {
+    assertNotStopped()
+    new LocalRDD(this, localHost, path)
+  }
+
   /**
    * Read a directory of text files from HDFS, a local file system (available on all nodes), or any
    * Hadoop-supported file system URI. Each file is read as a single record and returned in a
