@@ -3,7 +3,7 @@ package org.apache.spark.label
 /**
  * @author liuchang
  */
-class Label(_name:String) {
+class Label(_name:String) extends Serializable {
   val name = _name
   
   def /\ (label:Label):Label = {
