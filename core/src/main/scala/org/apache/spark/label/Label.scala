@@ -29,6 +29,8 @@ class Label(_name:String) extends Serializable {
   def isBot:Boolean = name == Label.BOT_NAME
   
   def isTop:Boolean = name == Label.TOP_NAME
+  
+  override def toString = "L" + name
 }
 
 object Label {

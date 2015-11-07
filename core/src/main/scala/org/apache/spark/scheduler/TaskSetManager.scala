@@ -494,7 +494,12 @@ private[spark] class TaskSetManager(
           return Some(new TaskDescription(taskId = taskId, attemptNumber = attemptNum, execId,
             taskName, index, serializedTask))
         }
-        case _ =>
+        case _ => {
+            logInfo(s"Host ${host} ExeId ${execId}, found nothing")
+            logInfo(s"pendingTasksForExecutor: ${pendingTasksForExecutor}")
+            logInfo(s"pendingTasksForHost: ${pendingTasksForHost}")
+            logInfo(s"allPendingTasks: ${allPendingTasks}")
+        }
       }
     }
     None
